@@ -13,8 +13,8 @@ import javax.persistence.*;
 public class Estrutura {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  private Integer id;
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Integer estrutura_id;
 
   @Column(name = "nome")
   private String name;

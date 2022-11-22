@@ -1,7 +1,9 @@
 package br.com.api.ysw.controller;
 
+import br.com.api.ysw.DTO.UsuarioDTO;
+import br.com.api.ysw.exception.ErroAutenticacao;
 import br.com.api.ysw.model.Usuario;
-import br.com.api.ysw.repository.Usuarios;
+import br.com.api.ysw.repository.UsuarioRepository;
 import br.com.api.ysw.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
@@ -15,7 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:3000")
+//@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/api/users")
 public class UsuarioController {
 
@@ -23,34 +25,27 @@ public class UsuarioController {
     UsuarioService usuarioService;
 
     @Autowired
-    Usuarios usuariosRepository;
+    UsuarioRepository usuarioRepository;
 
 
-    //metodo de buscar o usuario
+    /*metodo de buscar o usuario http://localhost:8080/api/users/:id */
     @GetMapping("{id}")
-    public ResponseEntity<?> getUsuarioById(@PathVariable Integer id){
-
-        try {
-            Optional<Usuario> user = usuariosRepository.findById(id);
-            if (user.isEmpty()) {
-                return new ResponseEntity<>("Usuário não encontrado.", HttpStatus.NOT_FOUND);
-            }
-            return new ResponseEntity(user, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public Usuario getUsuarioById(@PathVariable Integer id){
+        return usuarioRepository.findById(id)
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Usuario não encontrado"));
     }
 
     //rota de criar o usuario
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Usuario save (@RequestBody Usuario usuarios){
-        return usuariosRepository.save(usuarios);
+    public Usuario salvarUsuario (@RequestBody Usuario usuarios){
+        return  usuarioService.salvarUsuario(usuarios);
     }
 
     @PutMapping("/updateUsers/{id}")
     public ResponseEntity<Usuario> updateUsers(@PathVariable("id") Integer id, @RequestBody Usuario usuarios) {
-        Optional<Usuario> usuarioDados = usuariosRepository.findById(id);
+        Optional<Usuario> usuarioDados = usuarioRepository.findById(id);
 
         if (usuarioDados.isPresent()) {
             Usuario _usuarios = usuarioDados.get();
@@ -58,25 +53,25 @@ public class UsuarioController {
             _usuarios.setResponsable(usuarioDados.get().getResponsable());
             _usuarios.setContatResponsable(usuarioDados.get().getContatResponsable());
             _usuarios.setEmail(usuarioDados.get().getEmail());
-            return new ResponseEntity<>(usuariosRepository.save(_usuarios), HttpStatus.OK);
+            return new ResponseEntity<>(usuarioRepository.save(_usuarios), HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<?> deleteAllUsers() {
+    public ResponseEntity<HttpStatus> deleteAllUsers() {
         try {
-            usuariosRepository.deleteAll();
+            usuarioRepository.deleteAll();
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (Exception e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     // pesquisa de usuário, servirá para a estrutura tbm
     @GetMapping
-    public List<Usuario> find(Usuario filtro){
+    public List<Usuario> find(Usuario filtro ){
         ExampleMatcher matcher = ExampleMatcher
                 .matching()
                 .withIgnoreCase()
@@ -84,6 +79,17 @@ public class UsuarioController {
                         ExampleMatcher.StringMatcher.CONTAINING );
 
         Example example = Example.of(filtro, matcher);
-        return usuariosRepository.findAll(example);
+        return usuarioRepository.findAll(example);
+    }
+
+    /**outra rota de criar usuario*/
+    @PostMapping("/authenticate")
+    public ResponseEntity autenticar(@RequestBody UsuarioDTO dto){
+        try{
+        Usuario usuarioAutenticado =  usuarioService.autenticar(dto.getEmail(), dto.getPassword());
+        return ResponseEntity.ok(usuarioAutenticado);
+        }catch (ErroAutenticacao e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

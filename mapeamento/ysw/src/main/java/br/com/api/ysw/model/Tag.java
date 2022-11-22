@@ -10,10 +10,10 @@ import javax.persistence.*;
 @Getter
 @Setter
 public class Tag {
-  
+
   @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
-  private Integer id;
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Integer tag_id;
 
   @Column(name = "nome")
   private String name;
@@ -24,8 +24,7 @@ public class Tag {
   @Column(name = "numSerial")
   private String numSerial;
 
-  @ManyToOne
+  @ManyToOne(cascade=CascadeType.PERSIST)
   @JoinColumn(name = "estrutura_id")
   private Estrutura estrutura;
-
 }

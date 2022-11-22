@@ -1,8 +1,11 @@
 package br.com.api.ysw.controller;
 
+import br.com.api.ysw.DTO.request.TagDTO;
+import br.com.api.ysw.model.Estrutura;
 import br.com.api.ysw.model.Tag;
 import br.com.api.ysw.model.Usuario;
-import br.com.api.ysw.repository.Tags;
+import br.com.api.ysw.repository.EstruturaRepository;
+import br.com.api.ysw.repository.TagRepository;
 import br.com.api.ysw.service.TagsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
@@ -16,7 +19,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:3000")
+//@CrossOrigin(origins = "http://localhost:3000")
 @RequestMapping("/api/tags")
 public class TagController {
 
@@ -24,11 +27,22 @@ public class TagController {
     TagsService tagsService;
 
     @Autowired
-    Tags tagsRepository;
+    TagRepository tagRepository;
+
+    @Autowired
+    EstruturaRepository estruturaRepository;
+
+    @ResponseBody
+    @GetMapping(value = "/consultaTag/{numSerial}")
+    public ResponseEntity<TagDTO> consultaTag(@PathVariable("numSerial") String numSerial){
+        TagDTO tagDTO = tagsService.consultaTag(numSerial);
+
+        return new ResponseEntity<>(tagDTO, HttpStatus.OK);
+    }
 
     @GetMapping("{id}")
     public Tag getTagById(@PathVariable Integer id) {
-        return tagsRepository.findById(id)
+        return tagRepository.findById(id)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Tag não encontrada"));
     }
@@ -36,7 +50,7 @@ public class TagController {
     @GetMapping("/")
     public ResponseEntity<?> getTagByIdEstrutura(@RequestParam("idEstrutura") Integer idEstrutura) {
         try {
-            List<Tag> tags = tagsRepository.findAllByIdEstrutura(idEstrutura);
+            List<Tag> tags = tagRepository.findAllByIdEstrutura(idEstrutura);
             if (tags.isEmpty()) {
                 return new ResponseEntity<>("Não há tags para essa estrutura", HttpStatus.NOT_FOUND);
             }
@@ -49,44 +63,54 @@ public class TagController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Tag save (@RequestBody Tag tags){
-        return tagsRepository.save(tags);
+        Optional<Estrutura> estrutura = estruturaRepository.findById(tags.getEstrutura().getEstrutura_id());
+
+        if (estrutura.isPresent()) {
+            Tag tag = new Tag();
+            tag.setName(tags.getName());
+            tag.setLocation(tags.getLocation());
+            tag.setNumSerial(tags.getNumSerial());
+            tag.setEstrutura(estrutura.get());
+            return tagRepository.save(tag);
+        }
+        return new Tag();
     }
 
     @PutMapping("/updateTags/{id}")
     public ResponseEntity<Tag> updateTag(@PathVariable("id") Integer id, @RequestBody Usuario usuarios) {
-        Optional<Tag> tagDados = tagsRepository.findById(id);
+        Optional<Tag> tagDados = tagRepository.findById(id);
 
         if (tagDados.isPresent()) {
             Tag _tag = tagDados.get();
             _tag.setName(tagDados.get().getName());
             _tag.setLocation(tagDados.get().getLocation());
             _tag.setNumSerial(tagDados.get().getNumSerial());
-            return new ResponseEntity<>(tagsRepository.save(_tag), HttpStatus.OK);
+            return new ResponseEntity<>(tagRepository.save(_tag), HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
-        @DeleteMapping("/delete")
-        public ResponseEntity<HttpStatus> deleteAllTags() {
-            try {
-                tagsRepository.deleteAll();
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            } catch (Exception e) {
-                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-            }
+    @DeleteMapping("/delete")
+    public ResponseEntity<HttpStatus> deleteAllTags() {
+        try {
+            tagRepository.deleteAll();
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
 
-        // pesquisa de usuário, servirá para a estrutura tbm
-        @GetMapping
-        public List<Usuario> find(Usuario filtro ){
-            ExampleMatcher matcher = ExampleMatcher
-                    .matching()
-                    .withIgnoreCase()
-                    .withStringMatcher(
-                            ExampleMatcher.StringMatcher.CONTAINING );
+    // pesquisa de usuário, servirá para a estrutura tbm
+    @GetMapping
+    public List<Usuario> find(Usuario filtro ){
+        ExampleMatcher matcher = ExampleMatcher
+                .matching()
+                .withIgnoreCase()
+                .withStringMatcher(
+                        ExampleMatcher.StringMatcher.CONTAINING );
 
-            Example example = Example.of(filtro, matcher);
-            return tagsRepository.findAll(example);
-        }
+        Example example = Example.of(filtro, matcher);
+        return tagRepository.findAll(example);
+    }
     }
