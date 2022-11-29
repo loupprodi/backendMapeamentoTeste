@@ -40,6 +40,12 @@ public class TagController {
         return new ResponseEntity<>(tagDTO, HttpStatus.OK);
     }
 
+    //    public ResponseEntity<TagDTO> consultaTag(TagDTO tagDTO){
+//        TagDTO tagDTO = tagsService.consultaTag(tagDTO);
+//
+//        return new ResponseEntity<>(tagDTO, HttpStatus.OK);
+//    }
+
     @GetMapping("{id}")
     public Tag getTagById(@PathVariable Integer id) {
         return tagRepository.findById(id)
